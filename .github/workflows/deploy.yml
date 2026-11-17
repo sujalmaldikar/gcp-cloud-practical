@@ -1,0 +1,61 @@
+
+name: GCP Cloud Run Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Test Docker Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Check Python Syntax
+        run: |
+          python -m compileall -q app.py deploy.py
+
+      - name: Build Docker Image
+        run: |
+          docker build -t gcp-cloud-practical:${{ github.sha }} .
+
+      - name: Run Docker Container
+        run: |
+          docker run -d \
+            --name gcp-practical-test \
+            -p 8080:8080 \
+            gcp-cloud-practical:${{ github.sha }}
+
+      - name: Test Application Health
+        run: |
+          for i in {1..10}; do
+            if curl -fsS http://localhost:8080/health; then
+              echo "Application health check passed!"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Application health check failed!"
+          docker logs gcp-practical-test
+          exit 1
+
+      - name: Stop Docker Container
+        if: always()
+        run: |
+          docker stop gcp-practical-test || true
