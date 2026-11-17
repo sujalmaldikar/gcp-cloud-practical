@@ -12,10 +12,19 @@ jobs:
   build-and-test:
     name: Build and Test Docker Application
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+            - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/11768882068/locations/global/workloadIdentityPools/github-actions-pool/providers/github-cloudrun-provider
+          service_account: github-cloudrun-deployer@optimum-phalanx-514316-j3.iam.gserviceaccount.com
 
       - name: Set Up Python
         uses: actions/setup-python@v5
